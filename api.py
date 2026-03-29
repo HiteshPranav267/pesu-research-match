@@ -48,12 +48,27 @@ def setup():
         init_models()
 
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
+
+
 @app.route("/", methods=["GET"])
 def index():
     return send_file("index.html")
 
 
-@app.route("/departments", methods=["GET"])
+@app.route("/<path:path>", methods=["GET", "OPTIONS"])
+def static_proxy(path):
+    if os.path.exists(path) and os.path.isfile(path):
+        return send_file(path)
+    return "Not Found", 404
+
+
+@app.route("/departments", methods=["GET", "OPTIONS"])
 def get_departments():
     campus = request.args.get("campus")
     filtered = [doc.get("raw", {}) for doc in matcher.docs]
@@ -71,8 +86,10 @@ def get_departments():
     return jsonify({c: sorted(list(depts)) for c, depts in dept_map.items()})
 
 
-@app.route("/match", methods=["POST"])
+@app.route("/match", methods=["POST", "OPTIONS"])
 def search():
+    if request.method == "OPTIONS":
+        return jsonify({"status": "ok"})
     body = request.get_json(silent=True) or {}
     query = body.get("query", "").strip()
     if not query:
@@ -114,8 +131,13 @@ Write a short, engaging 2-sentence response directly addressing the student. Exp
                     {"role": "user", "content": prompt}]
         
         try:
-            res = llm_pipe(messages, max_new_tokens=80, do_sample=False)
-            ai_summary = res[0]['generated_text'][-1]['content'].strip()
+            res = llm_pipe(messages, max_new_tokens=100, do_sample=False, return_full_text=False)
+            generated = res[0]['generated_text']
+            # If it's a list (chat format), get last content, else it's a string
+            if isinstance(generated, list):
+                ai_summary = generated[-1]['content'].strip()
+            else:
+                ai_summary = str(generated).strip()
         except Exception as e:
             ai_summary = "An error occurred generating the AI insight."
             print("LLM Error:", e)

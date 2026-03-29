@@ -166,72 +166,19 @@
 <body
   class="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary overflow-x-hidden">
 
-  <!-- ── Navigation ── -->
-  <nav class="bg-[#0e0e11]/60 backdrop-blur-xl shadow-[0_0_48px_0_rgba(61,53,166,0.06)] sticky top-0 z-50">
-    <div class="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
-      <div class="flex items-center gap-8">
-        <span class="text-2xl font-bold tracking-tighter text-primary font-headline">ResearchMatch PES</span>
-        <div class="hidden md:flex items-center gap-6">
-          <a class="text-primary font-bold border-b-2 border-primary font-label transition-colors duration-300"
-            href="#">Explore</a>
-          <a class="text-on-surface-variant font-medium font-label hover:text-primary transition-colors duration-300"
-            href="#">About</a>
-        </div>
-      </div>
-      <div class="flex items-center gap-4">
-        <a href="https://staff.pes.edu" target="_blank"
-          class="bg-surface-container-high px-6 py-2 rounded-full font-label text-sm font-bold border border-outline-variant/20 hover:text-primary transition-colors">Staff
-          Portal ↗</a>
-      </div>
-    </div>
-  </nav>
+
 
   <!-- ── Main App Mount ── -->
   <main class="relative isolate" id="root"></main>
 
-  <!-- ── Footer ── -->
-  <footer class="bg-[#000000] rounded-t-[3rem] mt-20">
-    <div
-      class="grid grid-cols-1 md:grid-cols-4 gap-12 px-12 py-20 w-full max-w-screen-2xl mx-auto font-body text-sm tracking-wide">
-      <div class="space-y-6">
-        <span class="text-xl font-black text-primary font-headline">ResearchMatch PES</span>
-        <p class="text-on-surface-variant leading-relaxed">AI-powered faculty discovery. Connect with cross-departmental
-          pioneers and accelerate your academic trajectory.</p>
-      </div>
-      <div class="space-y-6">
-        <h4 class="text-primary font-bold uppercase tracking-widest text-xs">University Links</h4>
-        <ul class="space-y-3">
-          <li><a class="text-on-surface-variant hover:text-primary transition-all" href="https://pes.edu"
-              target="_blank">PES University</a></li>
-          <li><a class="text-on-surface-variant hover:text-primary transition-all" href="https://staff.pes.edu"
-              target="_blank">Staff Directory</a></li>
-        </ul>
-      </div>
-      <div class="space-y-6">
-        <h4 class="text-primary font-bold uppercase tracking-widest text-xs">Tech Stack</h4>
-        <ul class="space-y-3">
-          <li class="text-on-surface-variant">all-mpnet-base-v2</li>
-          <li class="text-on-surface-variant">Cross-Encoder Re-ranking</li>
-          <li class="text-on-surface-variant">FastAPI + React</li>
-        </ul>
-      </div>
-      <div class="space-y-6">
-        <h4 class="text-primary font-bold uppercase tracking-widest text-xs">System Status</h4>
-        <div class="flex items-center gap-3">
-          <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          <span class="text-on-surface-variant">Two-Stage Engine Active</span>
-        </div>
-        <p class="text-on-surface-variant text-xs mt-8">© MLA Project · ResearchMatch</p>
-      </div>
-    </div>
-  </footer>
+
 
   <!-- ══════════════════════════════════════════════════════════════ -->
   <!-- React Application                                             -->
   <!-- ══════════════════════════════════════════════════════════════ -->
   <script type="text/babel">
     const { useState, useEffect, useCallback, useRef } = React;
-    const API = "http://localhost:8000";
+    const API = "";
     const MIN_SCORE = 0.25;
 
     // ── Score Ring Component ──
@@ -358,8 +305,237 @@
       );
     }
 
+    // ── About Page Component ──
+    function AboutPage() {
+      const [isZoomed, setIsZoomed] = useState(false);
+
+      return (
+        <div className="max-w-4xl mx-auto px-6 py-20 space-y-20">
+          {/* Header */}
+          <section className="text-center space-y-4">
+            <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary font-bold text-xs uppercase tracking-widest mb-4">Finalized Solution</div>
+            <h2 className="font-headline font-bold text-5xl md:text-7xl text-on-surface tracking-tight">Project Evolution</h2>
+            <p className="text-xl text-on-surface-variant max-w-2xl mx-auto font-medium leading-relaxed">
+              ResearchMatch was developed to find your perfect research professor at PES University — match your resume or interests to faculty using local ML embeddings. No API keys needed.
+            </p>
+          </section>
+
+          {/* Academic Context */}
+          <div className="p-10 rounded-[2rem] bg-surface-container-high border border-outline-variant/20 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 group-hover:bg-primary/10 transition-colors duration-500" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-8">
+                <span className="material-symbols-outlined text-primary text-5xl">school</span>
+                <h3 className="font-headline font-bold text-3xl text-on-surface">Course Context</h3>
+              </div>
+              <p className="text-xl text-on-surface-variant leading-relaxed">
+                This project was developed for the course <span className="text-primary font-bold">"Machine Learning and Applications (UE23EC352B)"</span> as part of the curriculum at PES University, specifically focused on solving the <span className="text-secondary font-bold">Jackfruit Problem</span> under Dr. Shruthi M L J, Electronics and Communication Dept.
+              </p>
+            </div>
+          </div>
+
+          {/* Team Info */}
+          <section className="space-y-8">
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-primary text-4xl">groups</span>
+              <h3 className="font-headline font-bold text-3xl text-on-surface">The Intelligence Team</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <a 
+                href="https://hiteshpranav267.github.io/hitesh-engineering/" 
+                target="_blank" 
+                className="p-8 rounded-2xl bg-surface-container border border-outline-variant/10 text-center space-y-4 hover:border-primary/40 transition-all duration-300 group/card block"
+              >
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 font-headline font-bold text-primary text-2xl group-hover/card:scale-110 transition-transform">HP</div>
+                <h4 className="font-headline font-bold text-xl uppercase group-hover/card:text-primary transition-colors">Hitesh Pranav Reddy</h4>
+                <p className="text-sm font-label font-bold text-on-surface-variant uppercase tracking-widest">PES1UG23EC912</p>
+              </a>
+              <div className="p-8 rounded-2xl bg-surface-container border border-outline-variant/10 text-center space-y-4 hover:border-secondary/40 transition-all duration-300">
+                <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-2 font-headline font-bold text-secondary text-2xl">DS</div>
+                <h4 className="font-headline font-bold text-xl uppercase">Dakshin S</h4>
+                <p className="text-sm font-label font-bold text-on-surface-variant uppercase tracking-widest">PES1UG23EC082</p>
+              </div>
+              <div className="p-8 rounded-2xl bg-surface-container border border-outline-variant/10 text-center space-y-4 hover:border-primary/40 transition-all duration-300">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 font-headline font-bold text-primary text-2xl">PP</div>
+                <h4 className="font-headline font-bold text-xl uppercase">Pragna Prasad</h4>
+                <p className="text-sm font-label font-bold text-on-surface-variant uppercase tracking-widest">PES1UG23EC921</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Project Workflow Block Diagram */}
+          <section className="space-y-8">
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-secondary text-4xl">account_tree</span>
+              <h3 className="font-headline font-bold text-3xl text-on-surface">Project Architecture</h3>
+            </div>
+            <div
+              className="w-full rounded-lg bg-surface-container-lowest border border-outline-variant/10 shadow-2xl overflow-hidden group cursor-zoom-in"
+              onClick={() => setIsZoomed(true)}
+            >
+              <img
+                src="flowchart.png"
+                alt="Project Workflow Architecture"
+                className="w-full h-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity duration-500"
+              />
+            </div>
+
+            {/* Zoom Modal */}
+            {isZoomed && (
+              <div
+                className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
+                onClick={() => setIsZoomed(false)}
+              >
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <img
+                    src="flowchart.png"
+                    className="max-w-full max-h-full object-contain shadow-[0_0_100px_rgba(157,254,168,0.2)]"
+                    alt="Project Workflow Enlarged"
+                  />
+                  <button
+                    className="absolute top-4 right-4 text-on-background bg-surface-container-high rounded-full p-2 hover:bg-primary hover:text-on-primary transition-all"
+                    onClick={(e) => { e.stopPropagation(); setIsZoomed(false); }}
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <p className="text-on-surface-variant text-sm text-center max-w-2xl mx-auto italic mt-4">
+              Visualizing the two-stage hybrid retrieval pipeline: Click to enlarge the diagram.
+            </p>
+          </section>
+
+          {/* Technical Explanation */}
+          <section className="space-y-12">
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-primary text-4xl">description</span>
+              <h3 className="font-headline font-bold text-3xl text-on-surface">Architectural Breakdown</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="font-headline font-bold text-2xl text-primary flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center text-sm">01</span>
+                    Offline Indexing Phase
+                  </h4>
+                  <p className="text-on-surface-variant leading-relaxed text-lg">
+                    The system begins by processing raw faculty data from PES University. This involves text cleaning, metadata extraction, and document synthesis.
+                  </p>
+                  <ul className="space-y-3 pl-11">
+                    <li className="flex items-start gap-3 text-sm text-on-surface-variant/80">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                      <strong>BGE-Large Embeddings:</strong> We utilize advanced transformer models to convert rich faculty profiles into high-dimensional semantic vectors.
+                    </li>
+                    <li className="flex items-start gap-3 text-sm text-on-surface-variant/80">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                      <strong>Sparse indexing:</strong> Simultaneously, an inverted index is created for keyword-based retrieval using the BM25 algorithm.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-headline font-bold text-2xl text-secondary flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-lg bg-secondary text-on-secondary flex items-center justify-center text-sm">02</span>
+                    Real-time Retrieval
+                  </h4>
+                  <p className="text-on-surface-variant leading-relaxed text-lg">
+                    When a student uploads a resume or describes their interests, the engine performs a two-track search:
+                  </p>
+                  <ul className="space-y-3 pl-11">
+                    <li className="flex items-start gap-3 text-sm text-on-surface-variant/80">
+                      <span className="w-1.5 h-1.5 rounded-full bg-secondary mt-2 flex-shrink-0" />
+                      <strong>Semantic Path:</strong> Finding professors based on deep contextual similarity, even if technical terminology differs.
+                    </li>
+                    <li className="flex items-start gap-3 text-sm text-on-surface-variant/80">
+                      <span className="w-1.5 h-1.5 rounded-full bg-secondary mt-2 flex-shrink-0" />
+                      <strong>Keyword Path:</strong> Ensuring exact matches for crucial technical tools like "TensorFlow", "ROS", or "VLSI".
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-8 rounded-3xl bg-surface-container border border-outline-variant/10 space-y-4 shadow-inner">
+                  <h4 className="font-headline font-bold text-2xl text-on-surface border-b border-outline-variant/20 pb-4">Hybrid Weighted Scoring</h4>
+                  <p className="text-on-surface-variant leading-relaxed">
+                    The final ranking is determined by a weighted fusion (40% Semantic + 60% Keyword). This specific balance was engineered to prioritize technical core skills while allowing secondary semantic interests to surface.
+                  </p>
+                  <div className="pt-4 space-y-2">
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-primary">
+                      <span>Semantic (BGE)</span>
+                      <span>40%</span>
+                    </div>
+                    <div className="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: '40%' }} />
+                    </div>
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-secondary pt-4">
+                      <span>Keyword (BM25)</span>
+                      <span>60%</span>
+                    </div>
+                    <div className="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+                      <div className="h-full bg-secondary" style={{ width: '60%' }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-6 rounded-2xl bg-primary/5 border border-primary/20">
+                  <span className="material-symbols-outlined text-primary text-4xl">auto_awesome</span>
+                  <div className="space-y-2">
+                    <h5 className="font-headline font-bold text-lg text-on-surface">LLM Insights</h5>
+                    <p className="text-sm text-on-surface-variant">
+                      Top matches are passed through a local Qwen-2.5-0.5B model to generate human-readable explanations of the match quality, acting as a virtual research advisor.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Learnings (Moved to bottom and expanded) */}
+          <section className="space-y-12 pb-20">
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-secondary text-4xl">lightbulb</span>
+              <h3 className="font-headline font-bold text-3xl text-on-surface">Educational Outcomes</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="space-y-6">
+                <h4 className="font-headline font-bold text-primary text-xl border-b border-primary/20 pb-2">ML Principles Applied</h4>
+                <ul className="space-y-6">
+                  <li className="flex gap-4 group">
+                    <span className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-all duration-300 font-headline">01</span>
+                    <p className="text-sm text-on-surface-variant leading-relaxed"><strong className="text-on-surface block text-base mb-1">Distance-Based Classification:</strong> Deep dive into Unit 3 topics through the implementation of Cosine Similarity for nearest-neighbor retrieval in high-dimensional latent space.</p>
+                  </li>
+                  <li className="flex gap-4 group">
+                    <span className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-all duration-300 font-headline">02</span>
+                    <p className="text-sm text-on-surface-variant leading-relaxed"><strong className="text-on-surface block text-base mb-1">Architecture Selection:</strong> Benchmarking Unit 2 concepts by selecting transformer architectures (BGE vs MiniLM) to optimize for cross-domain technical queries.</p>
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-6">
+                <h4 className="font-headline font-bold text-secondary text-xl border-b border-secondary/20 pb-2">Structured Learning Process</h4>
+                <ul className="space-y-6">
+                  <li className="flex gap-4 group">
+                    <span className="w-10 h-10 rounded-full bg-secondary/10 text-secondary font-bold flex items-center justify-center flex-shrink-0 group-hover:bg-secondary group-hover:text-on-secondary transition-all duration-300 font-headline">01</span>
+                    <p className="text-sm text-on-surface-variant leading-relaxed"><strong className="text-on-surface block text-base mb-1">Pipeline Construction:</strong> Practical experience in Unit 1 concepts by building a robust data pipeline from raw scraping to structured vector search.</p>
+                  </li>
+                  <li className="flex gap-4 group">
+                    <span className="w-10 h-10 rounded-full bg-secondary/10 text-secondary font-bold flex items-center justify-center flex-shrink-0 group-hover:bg-secondary group-hover:text-on-secondary transition-all duration-300 font-headline">02</span>
+                    <p className="text-sm text-on-surface-variant leading-relaxed"><strong className="text-on-surface block text-base mb-1">Inference Optimization:</strong> Real-world implementation of inference management, ensuring local model deployment remains low-latency even on consumer-grade hardware.</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
     // ── Main App ──
     function App() {
+      const [view, setView] = useState("explore");
       const [campus, setCampus] = useState("RR");
       const [departments, setDepartments] = useState([]);
       const [activeDept, setActiveDept] = useState(null);
@@ -432,263 +608,342 @@
       };
 
       return (
-        <>
-          {/* Organic Blobs */}
-          <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary-container/20 rounded-full organic-blob" />
-          <div className="absolute top-[20%] left-[-15%] w-[800px] h-[800px] bg-secondary-container/30 rounded-full organic-blob" />
-          <div className="absolute bottom-[0%] right-[10%] w-[500px] h-[500px] bg-primary-container/10 rounded-full organic-blob" />
-
-          <section className="max-w-screen-2xl mx-auto px-6 md:px-8 pt-16 md:pt-20 pb-20 md:pb-40">
-            {/* ── Hero ── */}
-            <div className="relative z-10 mb-12 md:mb-16">
-              <h1 className="font-headline font-bold text-5xl md:text-[7rem] kinetic-text tracking-tighter max-w-4xl mb-6">
-                <span className="text-primary">Find your</span><br />
-                <span className="text-secondary leading-none">scholarly synergy</span>
-              </h1>
-              <p className="text-on-surface-variant text-lg md:text-2xl max-w-2xl font-medium tracking-tight">
-                Break the traditional silos. AI-powered two-stage matching connects you with the right PES faculty for your research.
-              </p>
-            </div>
-
-            {/* ── Main Grid ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
-
-              {/* ── Left: Filters ── */}
-              <div className="lg:col-span-4 space-y-10">
-
-                {/* Campus Toggle */}
-                <div className="space-y-4">
-                  <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Select Campus</label>
-                  <div className="bg-surface-container-low p-2 rounded-full inline-flex gap-2">
-                    {["RR", "EC"].map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setCampus(c)}
-                        className={`px-8 py-3 rounded-full font-bold font-label transition-all ${campus === c
-                          ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
-                          : "text-on-surface-variant hover:text-on-surface"
-                          }`}
-                      >
-                        {c} Campus
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Department Chips */}
-                {departments.length > 0 && (
-                  <div className="space-y-4">
-                    <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Department Filter</label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setActiveDept(null)}
-                        className={`px-5 py-2 rounded-full border-2 font-bold font-label text-sm transition-colors ${activeDept === null
-                          ? "border-primary text-primary bg-primary/10"
-                          : "border-outline-variant/40 text-on-surface-variant hover:border-primary hover:text-primary"
-                          }`}
-                      >
-                        All
-                      </button>
-                      {departments.map((d) => (
-                        <button
-                          key={d}
-                          onClick={() => setActiveDept(d === activeDept ? null : d)}
-                          className={`px-5 py-2 rounded-full border-2 font-bold font-label text-sm transition-colors ${activeDept === d
-                            ? "border-secondary text-secondary bg-secondary/10"
-                            : "border-outline-variant/40 text-on-surface-variant hover:border-secondary hover:text-secondary"
-                            }`}
-                        >
-                          {d}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Stats Card */}
-                <div className="p-6 rounded-xl bg-surface-container-high border border-outline-variant/10">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="material-symbols-outlined filled text-primary text-2xl">analytics</span>
-                    <span className="font-headline font-bold text-lg">Engine Stats</span>
-                  </div>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-on-surface-variant">Faculty Profiles</span>
-                      <span className="font-bold text-primary">{profCount}+</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-on-surface-variant">Bi-Encoder</span>
-                      <span className="font-bold text-on-surface">mpnet-base-v2</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-on-surface-variant">Re-ranker</span>
-                      <span className="font-bold text-secondary">Cross-Encoder</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-on-surface-variant">Pipeline</span>
-                      <span className="font-bold text-primary">Two-Stage</span>
-                    </div>
-                  </div>
+        <div className="min-h-screen flex flex-col">
+          {/* ── Navigation (Moved inside React) ── */}
+          <nav className="bg-[#0e0e11]/60 backdrop-blur-xl shadow-[0_0_48px_0_rgba(61,53,166,0.06)] sticky top-0 z-50">
+            <div className="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
+              <div className="flex items-center gap-8">
+                <button onClick={() => setView("explore")} className="text-2xl font-bold tracking-tighter text-primary font-headline hover:opacity-80 transition-opacity">ResearchMatch PES</button>
+                <div className="hidden md:flex items-center gap-6">
+                  <button
+                    onClick={() => setView("explore")}
+                    className={`${view === 'explore' ? 'text-primary font-bold border-b-2 border-primary' : 'text-on-surface-variant font-medium hover:text-primary'} font-label transition-colors duration-300 pb-1`}
+                  >
+                    Explore
+                  </button>
+                  <button
+                    onClick={() => setView("about")}
+                    className={`${view === 'about' ? 'text-primary font-bold border-b-2 border-primary' : 'text-on-surface-variant font-medium hover:text-primary'} font-label transition-colors duration-300 pb-1`}
+                  >
+                    About
+                  </button>
                 </div>
               </div>
+              <div className="flex items-center gap-4">
+                <a href="https://staff.pes.edu" target="_blank"
+                  className="bg-surface-container-high px-6 py-2 rounded-full font-label text-sm font-bold border border-outline-variant/20 hover:text-primary transition-colors">Staff
+                  Portal ↗</a>
+              </div>
+            </div>
+          </nav>
 
-              {/* ── Right: Input & Results ── */}
-              <div className="lg:col-span-8">
-                <div className="bg-surface-container-low rounded-xl p-6 md:p-12 border border-outline-variant/10 shadow-2xl">
+          <main className="relative isolate flex-1">
+            {view === "explore" ? (
+              <>
+                {/* Organic Blobs */}
+                <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary-container/20 rounded-full organic-blob" />
+                <div className="absolute top-[20%] left-[-15%] w-[800px] h-[800px] bg-secondary-container/30 rounded-full organic-blob" />
+                <div className="absolute bottom-[0%] right-[10%] w-[500px] h-[500px] bg-primary-container/10 rounded-full organic-blob" />
 
-                  {/* Tab Selector */}
-                  <div className="flex gap-8 mb-8 border-b border-outline-variant/20">
-                    <button
-                      onClick={() => setTab("text")}
-                      className={`pb-4 text-xl md:text-2xl font-headline font-bold transition-all ${tab === "text"
-                        ? "text-on-surface border-b-4 border-primary"
-                        : "text-on-surface-variant hover:text-on-surface"
-                        }`}
-                    >
-                      Describe Interests
-                    </button>
-                    <button
-                      onClick={() => setTab("pdf")}
-                      className={`pb-4 text-xl md:text-2xl font-headline font-bold transition-all flex items-center gap-3 ${tab === "pdf"
-                        ? "text-on-surface border-b-4 border-secondary"
-                        : "text-on-surface-variant hover:text-on-surface"
-                        }`}
-                    >
-                      Resume Upload
-                      <span className="text-xs bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-label uppercase">PDF</span>
-                    </button>
+                <section className="max-w-screen-2xl mx-auto px-6 md:px-8 pt-16 md:pt-20 pb-20 md:pb-40">
+                  {/* ── Hero ── */}
+                  <div className="relative z-10 mb-12 md:mb-16">
+                    <h1 className="font-headline font-bold text-5xl md:text-[7rem] kinetic-text tracking-tighter max-w-4xl mb-6">
+                      <span className="text-primary">Find your</span><br />
+                      <span className="text-secondary leading-none">scholarly synergy</span>
+                    </h1>
+                    <p className="text-on-surface-variant text-lg md:text-2xl max-w-2xl font-medium tracking-tight">
+                      Break the traditional silos. AI-powered two-stage matching connects you with the right PES faculty for your research.
+                    </p>
                   </div>
 
-                  {/* Input Area */}
-                  <div className="space-y-6">
-                    {tab === "text" ? (
-                      <div className="neon-border">
-                        <textarea
-                          className="w-full h-64 md:h-80 bg-surface-container-lowest border-none rounded-lg p-6 md:p-8 text-lg font-body text-on-surface placeholder:text-outline/40 focus:ring-0 resize-none"
-                          placeholder="Describe your research interests, current projects, or a specific problem you're looking to solve...&#10;&#10;Example: I'm interested in applying deep learning to medical image analysis, specifically for early cancer detection using CNNs and transformer architectures."
-                          value={query}
-                          onChange={(e) => setQuery(e.target.value)}
-                        />
+                  {/* ── Main Grid ── */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
+
+                    {/* ── Left: Filters ── */}
+                    <div className="lg:col-span-4 space-y-10">
+
+                      {/* Campus Toggle */}
+                      <div className="space-y-4">
+                        <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Select Campus</label>
+                        <div className="bg-surface-container-low p-2 rounded-full inline-flex gap-2">
+                          {["RR", "EC"].map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => setCampus(c)}
+                              className={`px-8 py-3 rounded-full font-bold font-label transition-all ${campus === c
+                                ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+                                : "text-on-surface-variant hover:text-on-surface"
+                                }`}
+                            >
+                              {c} Campus
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    ) : (
-                      <div
-                        className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${dragOver
-                          ? "drop-active"
-                          : "border-outline-variant/30 hover:border-primary/50"
-                          }`}
-                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                        onDragLeave={() => setDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setDragOver(false);
-                          handleFile(e.dataTransfer.files[0]);
-                        }}
-                      >
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          onChange={(e) => handleFile(e.target.files[0])}
-                        />
-                        <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4 block">upload_file</span>
-                        <p className="text-on-surface-variant font-medium text-lg">Drag & drop your resume PDF</p>
-                        <p className="text-outline text-sm mt-2">or click to browse</p>
-                        {pdfName && (
-                          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary font-label font-bold text-sm">
-                            <span className="material-symbols-outlined text-base">check_circle</span>
-                            {pdfName}
+
+                      {/* Department Chips */}
+                      {departments.length > 0 && (
+                        <div className="space-y-4">
+                          <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Department Filter</label>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setActiveDept(null)}
+                              className={`px-5 py-2 rounded-full border-2 font-bold font-label text-sm transition-colors ${activeDept === null
+                                ? "border-primary text-primary bg-primary/10"
+                                : "border-outline-variant/40 text-on-surface-variant hover:border-primary hover:text-primary"
+                                }`}
+                            >
+                              All
+                            </button>
+                            {departments.map((d) => (
+                              <button
+                                key={d}
+                                onClick={() => setActiveDept(d === activeDept ? null : d)}
+                                className={`px-5 py-2 rounded-full border-2 font-bold font-label text-sm transition-colors ${activeDept === d
+                                  ? "border-secondary text-secondary bg-secondary/10"
+                                  : "border-outline-variant/40 text-on-surface-variant hover:border-secondary hover:text-secondary"
+                                  }`}
+                              >
+                                {d}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Stats Card */}
+                      <div className="p-6 rounded-xl bg-surface-container-high border border-outline-variant/10">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="material-symbols-outlined filled text-primary text-2xl">analytics</span>
+                          <span className="font-headline font-bold text-lg">Engine Stats</span>
+                        </div>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-on-surface-variant">Faculty Profiles</span>
+                            <span className="font-bold text-primary">{profCount}+ Enriched</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-on-surface-variant">Dense Model</span>
+                            <span className="font-bold text-on-surface">BGE-Large-v1.5</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-on-surface-variant">Sparse Engine</span>
+                            <span className="font-bold text-secondary">BM25 Algorithm</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-on-surface-variant">Decision Logic</span>
+                            <span className="font-bold text-primary">Weighted Fusion</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-on-surface-variant">Matching Logic</span>
+                            <span className="font-bold text-secondary">Two-Stage Hybrid</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Right: Input & Results ── */}
+                    <div className="lg:col-span-8">
+                      <div className="bg-surface-container-low rounded-xl p-6 md:p-12 border border-outline-variant/10 shadow-2xl">
+
+                        {/* Tab Selector */}
+                        <div className="flex gap-8 mb-8 border-b border-outline-variant/20">
+                          <button
+                            onClick={() => setTab("text")}
+                            className={`pb-4 text-xl md:text-2xl font-headline font-bold transition-all ${tab === "text"
+                              ? "text-on-surface border-b-4 border-primary"
+                              : "text-on-surface-variant hover:text-on-surface"
+                              }`}
+                          >
+                            Describe Interests
+                          </button>
+                          <button
+                            onClick={() => setTab("pdf")}
+                            className={`pb-4 text-xl md:text-2xl font-headline font-bold transition-all flex items-center gap-3 ${tab === "pdf"
+                              ? "text-on-surface border-b-4 border-secondary"
+                              : "text-on-surface-variant hover:text-on-surface"
+                              }`}
+                          >
+                            Resume Upload
+                            <span className="text-xs bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-label uppercase">PDF</span>
+                          </button>
+                        </div>
+
+                        {/* Input Area */}
+                        <div className="space-y-6">
+                          {tab === "text" ? (
+                            <div className="neon-border">
+                              <textarea
+                                className="w-full h-64 md:h-80 bg-surface-container-lowest border-none rounded-lg p-6 md:p-8 text-lg font-body text-on-surface placeholder:text-outline/40 focus:ring-0 resize-none"
+                                placeholder="Describe your research interests, current projects, or a specific problem you're looking to solve...&#10;&#10;Example: I'm interested in applying deep learning to medical image analysis, specifically for early cancer detection using CNNs and transformer architectures."
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${dragOver
+                                ? "drop-active"
+                                : "border-outline-variant/30 hover:border-primary/50"
+                                }`}
+                              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                              onDragLeave={() => setDragOver(false)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setDragOver(false);
+                                handleFile(e.dataTransfer.files[0]);
+                              }}
+                            >
+                              <input
+                                type="file"
+                                accept="application/pdf"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={(e) => handleFile(e.target.files[0])}
+                              />
+                              <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4 block">upload_file</span>
+                              <p className="text-on-surface-variant font-medium text-lg">Drag & drop your resume PDF</p>
+                              <p className="text-outline text-sm mt-2">or click to browse</p>
+                              {pdfName && (
+                                <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary font-label font-bold text-sm">
+                                  <span className="material-symbols-outlined text-base">check_circle</span>
+                                  {pdfName}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Bottom Actions */}
+                          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                            <div className="flex items-center gap-3 text-on-surface-variant">
+                              <span className="material-symbols-outlined filled text-primary text-xl">verified</span>
+                              <span className="text-sm font-medium">Matching against {profCount}+ enriched faculty profiles</span>
+                            </div>
+                            <button
+                              disabled={!effectiveQuery.trim() || loading}
+                              onClick={handleMatch}
+                              className="w-full md:w-auto bg-secondary text-on-surface px-10 py-5 rounded-full font-headline font-black text-lg flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(150,145,255,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
+                            >
+                              {loading ? (
+                                <>
+                                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                                  Analyzing...
+                                </>
+                              ) : (
+                                <>
+                                  Find Matching Professors
+                                  <span className="material-symbols-outlined text-2xl">bolt</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── Results Section ── */}
+                      <div ref={resultsRef}>
+                        {loading && (
+                          <div className="mt-10">
+                            <h2 className="font-headline font-bold text-2xl mb-6 flex items-center gap-3">
+                              <span className="material-symbols-outlined text-secondary animate-pulse">neurology</span>
+                              Two-stage analysis in progress...
+                            </h2>
+                            <SkeletonCards />
+                          </div>
+                        )}
+
+                        {!loading && results !== null && (
+                          <div className="mt-10">
+                            <h2 className="font-headline font-bold text-2xl mb-6">
+                              {results.length > 0 ? (
+                                <span className="flex items-center gap-3">
+                                  <span className="material-symbols-outlined filled text-primary text-3xl">school</span>
+                                  {results.length} Match{results.length !== 1 ? "es" : ""} Found
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-3 text-on-surface-variant">
+                                  <span className="material-symbols-outlined text-3xl">search_off</span>
+                                  No Strong Matches
+                                </span>
+                              )}
+                            </h2>
+
+                            {results.length === 0 ? (
+                              <div className="text-center py-16 px-8 rounded-xl bg-surface-container-high border border-outline-variant/10">
+                                <span className="text-5xl block mb-4">🔍</span>
+                                <p className="text-on-surface-variant text-lg max-w-md mx-auto">
+                                  No professors scored above {Math.round(MIN_SCORE * 100)}% relevance. Try broadening your description or removing department filters.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {aiSummary && (
+                                  <div className="mb-8 p-6 rounded-xl bg-gradient-to-br from-primary-container/20 to-secondary-container/20 border border-primary/30">
+                                    <h3 className="font-headline font-bold text-lg flex items-center gap-2 mb-2 text-primary">
+                                      <span className="material-symbols-outlined">auto_awesome</span>
+                                      AI Matchmaker Insight
+                                    </h3>
+                                    <p className="text-on-surface-variant leading-relaxed">
+                                      {aiSummary}
+                                    </p>
+                                  </div>
+                                )}
+                                {results.map((prof, i) => (
+                                  <ProfCard key={i} prof={prof} rank={i + 1} />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-
-                    {/* Bottom Actions */}
-                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                      <div className="flex items-center gap-3 text-on-surface-variant">
-                        <span className="material-symbols-outlined filled text-primary text-xl">verified</span>
-                        <span className="text-sm font-medium">Matching against {profCount}+ enriched faculty profiles</span>
-                      </div>
-                      <button
-                        disabled={!effectiveQuery.trim() || loading}
-                        onClick={handleMatch}
-                        className="w-full md:w-auto bg-secondary text-on-surface px-10 py-5 rounded-full font-headline font-black text-lg flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(150,145,255,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
-                      >
-                        {loading ? (
-                          <>
-                            <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                            Analyzing...
-                          </>
-                        ) : (
-                          <>
-                            Find Matching Professors
-                            <span className="material-symbols-outlined text-2xl">bolt</span>
-                          </>
-                        )}
-                      </button>
                     </div>
                   </div>
+                </section>
+              </>
+            ) : (
+              <AboutPage />
+            )}
+          </main>
+
+          {/* ── Footer ── */}
+          <footer className="bg-[#000000] rounded-t-[3rem] mt-20">
+            <div
+              class="grid grid-cols-1 md:grid-cols-4 gap-12 px-12 py-20 w-full max-w-screen-2xl mx-auto font-body text-sm tracking-wide">
+              <div class="space-y-6">
+                <span class="text-xl font-black text-primary font-headline">ResearchMatch PES</span>
+                <p class="text-on-surface-variant leading-relaxed">AI-powered faculty discovery. Connect with cross-departmental
+                  pioneers and accelerate your academic trajectory.</p>
+              </div>
+              <div class="space-y-6">
+                <h4 class="text-primary font-bold uppercase tracking-widest text-xs">University Links</h4>
+                <ul class="space-y-3">
+                  <li><a class="text-on-surface-variant hover:text-primary transition-all" href="https://pes.edu"
+                    target="_blank">PES University</a></li>
+                  <li><a class="text-on-surface-variant hover:text-primary transition-all" href="https://staff.pes.edu"
+                    target="_blank">Staff Directory</a></li>
+                </ul>
+              </div>
+              <div class="space-y-6">
+                <h4 class="text-primary font-bold uppercase tracking-widest text-xs">Team Students</h4>
+                <ul class="space-y-3">
+                  <li class="text-on-surface-variant">
+                    <a href="https://hiteshpranav267.github.io/hitesh-engineering/" target="_blank" class="hover:text-primary transition-colors">Hitesh Pranav Reddy</a>
+                  </li>
+                  <li class="text-on-surface-variant">Dakshin S</li>
+                  <li class="text-on-surface-variant">Pragna Prasad</li>
+                </ul>
+              </div>
+              <div class="space-y-6">
+                <h4 class="text-primary font-bold uppercase tracking-widest text-xs">System Status</h4>
+                <div class="flex items-center gap-3">
+                  <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                  <span class="text-on-surface-variant">Two-Stage Engine Active</span>
                 </div>
-
-                {/* ── Results Section ── */}
-                <div ref={resultsRef}>
-                  {loading && (
-                    <div className="mt-10">
-                      <h2 className="font-headline font-bold text-2xl mb-6 flex items-center gap-3">
-                        <span className="material-symbols-outlined text-secondary animate-pulse">neurology</span>
-                        Two-stage analysis in progress...
-                      </h2>
-                      <SkeletonCards />
-                    </div>
-                  )}
-
-                  {!loading && results !== null && (
-                    <div className="mt-10">
-                      <h2 className="font-headline font-bold text-2xl mb-6">
-                        {results.length > 0 ? (
-                          <span className="flex items-center gap-3">
-                            <span className="material-symbols-outlined filled text-primary text-3xl">school</span>
-                            {results.length} Match{results.length !== 1 ? "es" : ""} Found
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-3 text-on-surface-variant">
-                            <span className="material-symbols-outlined text-3xl">search_off</span>
-                            No Strong Matches
-                          </span>
-                        )}
-                      </h2>
-
-                      {results.length === 0 ? (
-                        <div className="text-center py-16 px-8 rounded-xl bg-surface-container-high border border-outline-variant/10">
-                          <span className="text-5xl block mb-4">🔍</span>
-                          <p className="text-on-surface-variant text-lg max-w-md mx-auto">
-                            No professors scored above {Math.round(MIN_SCORE * 100)}% relevance. Try broadening your description or removing department filters.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {aiSummary && (
-                            <div className="mb-8 p-6 rounded-xl bg-gradient-to-br from-primary-container/20 to-secondary-container/20 border border-primary/30">
-                              <h3 className="font-headline font-bold text-lg flex items-center gap-2 mb-2 text-primary">
-                                <span className="material-symbols-outlined">auto_awesome</span>
-                                AI Matchmaker Insight
-                              </h3>
-                              <p className="text-on-surface-variant leading-relaxed">
-                                {aiSummary}
-                              </p>
-                            </div>
-                          )}
-                          {results.map((prof, i) => (
-                            <ProfCard key={i} prof={prof} rank={i + 1} />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <p class="text-on-surface-variant text-xs mt-8">© MLA Project · ResearchMatch</p>
               </div>
             </div>
-          </section>
-        </>
+          </footer>
+        </div>
       );
     }
 
