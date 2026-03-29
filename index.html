@@ -370,6 +370,7 @@
       const [dragOver, setDragOver] = useState(false);
       const [loading, setLoading] = useState(false);
       const [results, setResults] = useState(null);
+      const [aiSummary, setAiSummary] = useState("");
       const [profCount, setProfCount] = useState(538);
       const resultsRef = useRef(null);
 
@@ -408,6 +409,7 @@
         if (!effectiveQuery.trim()) return;
         setLoading(true);
         setResults(null);
+        setAiSummary("");
         try {
           const body = { query: effectiveQuery, campus };
           if (activeDept) body.department = activeDept;
@@ -417,6 +419,7 @@
             body: JSON.stringify(body),
           });
           const data = await resp.json();
+          setAiSummary(data.ai_summary || "");
           const filtered = (data.results || []).filter((p) => p.score >= MIN_SCORE);
           setResults(filtered);
           // Scroll to results
@@ -663,6 +666,17 @@
                         </div>
                       ) : (
                         <div className="space-y-4">
+                          {aiSummary && (
+                            <div className="mb-8 p-6 rounded-xl bg-gradient-to-br from-primary-container/20 to-secondary-container/20 border border-primary/30">
+                              <h3 className="font-headline font-bold text-lg flex items-center gap-2 mb-2 text-primary">
+                                <span className="material-symbols-outlined">auto_awesome</span>
+                                AI Matchmaker Insight
+                              </h3>
+                              <p className="text-on-surface-variant leading-relaxed">
+                                {aiSummary}
+                              </p>
+                            </div>
+                          )}
                           {results.map((prof, i) => (
                             <ProfCard key={i} prof={prof} rank={i + 1} />
                           ))}

@@ -1,139 +1,184 @@
-"""
-embed.py — Generate chunk-based embeddings using BGE-Large-v1.5.
-
-Instead of one embedding per professor, we create separate embeddings for
-each semantic field (identity, research interests, projects, teaching, about).
-At query time, the matcher takes the MAX score across all chunks for each
-professor — so the most relevant section wins, and noise doesn't drag it down.
-
-Usage:
-    python embed.py
-
-Outputs:
-    professors_embeddings.npy   — (total_chunks, 1024) array
-    professors_chunk_map.json   — maps each chunk index to its professor index
-    professors_index.json       — ordered professor dicts
-"""
-
 import json
-
+import os
+import glob
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-# ── BGE-Large-v1.5: SOTA retrieval model ──
 MODEL_NAME = "BAAI/bge-large-en-v1.5"
 
-# BGE models perform better when passages are prefixed with this instruction
-PASSAGE_PREFIX = ""  # No prefix for passages (only queries get a prefix)
+CANDIDATE_FILES = [
+    "professors.json",
+    "enriched_professors.json",
+    "faculty.json",
+    "data/professors.json",
+    "data/enriched_professors.json",
+    "output/professors.json",
+    "output/enriched_professors.json",
+]
 
-INPUT_FILE = "professors.json"
-EMBEDDINGS_FILE = "professors_embeddings.npy"
-CHUNK_MAP_FILE = "professors_chunk_map.json"
-INDEX_FILE = "professors_index.json"
+
+def looks_like_prof(d: dict) -> bool:
+    if not isinstance(d, dict):
+        return False
+    keys = set(d.keys())
+    signal = {
+        "name", "department", "bio", "description",
+        "research_interests", "interests", "keywords",
+        "publications", "id", "professor_id", "slug"
+    }
+    return ("name" in keys) or (len(keys.intersection(signal)) >= 2)
 
 
-def build_chunks(professor: dict) -> list[str]:
+def extract_professor_dicts(obj):
+    out = []
+
+    def walk(x):
+        if isinstance(x, dict):
+            if looks_like_prof(x):
+                out.append(x)
+            for v in x.values():
+                walk(v)
+        elif isinstance(x, list):
+            for i in x:
+                walk(i)
+
+    walk(obj)
+    # dedupe
+    seen = set()
+    unique = []
+    for p in out:
+        k = json.dumps(p, sort_keys=True, ensure_ascii=False)
+        if k not in seen:
+            seen.add(k)
+            unique.append(p)
+    return unique
+
+
+def discover_input_file():
+    # 1) fixed candidates
+    for p in CANDIDATE_FILES:
+        if os.path.exists(p):
+            return p
+
+    # 2) any json in root/data/output
+    for pattern in ["*.json", "data/*.json", "output/*.json"]:
+        for p in glob.glob(pattern):
+            if "chunk_map" in p.lower():
+                continue
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    obj = json.load(f)
+                profs = extract_professor_dicts(obj)
+                if len(profs) >= 5:
+                    return p
+            except Exception:
+                pass
+
+    return None
+
+
+def build_professor_text(prof: dict) -> str:
     """
-    Build separate text chunks for each semantic field of a professor.
-    Each chunk becomes its own embedding vector. At query time, the
-    max similarity across all chunks determines the professor's score.
+    Constructs a comprehensive searchable text string from all relevant fields in the professor's profile.
+    Prioritizes key research/teaching fields to stay within transformer token limits.
     """
-    chunks = []
+    name = str(prof.get("name", "")).strip()
+    dept = str(prof.get("department", "")).strip()
+    campus = str(prof.get("campus", "")).strip()
+    
+    # Priority fields first (these contain the most distinguishing keywords)
+    interests = prof.get("Research Interest", "") or prof.get("research_interests", []) or prof.get("interests", [])
+    if isinstance(interests, list): interests = ", ".join(map(str, interests))
+    
+    teaching = str(prof.get("Teaching", "") or "")
+    projects = str(prof.get("Research Projects", "") or "")
+    responsibilities = str(prof.get("Responsibilities", "") or "")
+    
+    # Contextual fields second (truncate to stay within 512-token limits of BGE models)
+    overview = str(prof.get("About", "") or prof.get("bio", "") or prof.get("description", "") or "")
+    if len(overview) > 800:
+        overview = overview[:800] + "..."
+        
+    experience = str(prof.get("Experience", "") or "")
+    if len(experience) > 400:
+        experience = experience[:400] + "..."
+        
+    # Success markers
+    achievements = str(prof.get("Achievements", "") or "")
+    patents = str(prof.get("Patents", "") or "")
+    
+    # Publications (take only top 10 to avoid token overflow)
+    pubs = []
+    for key in ["Journals", "Conferences", "Books", "publications"]:
+        val = prof.get(key, [])
+        if isinstance(val, list):
+            pubs.extend(map(str, val))
+        elif isinstance(val, str) and val.strip():
+            pubs.append(val)
+    
+    # Truncate publications count
+    pub_text = "; ".join(pubs[:10])
+    
+    parts = [
+        f"Name: {name}" if name else "",
+        f"Department: {dept}" if dept else "",
+        f"Campus: {campus}" if campus else "",
+        f"Research: {interests}" if interests else "",
+        f"Expertise/Teaching: {teaching}" if teaching else "",
+        f"Active Projects: {projects}" if projects else "",
+        f"Responsibilities: {responsibilities}" if responsibilities else "",
+        f"Bio: {overview}" if overview else "",
+        f"Career History: {experience}" if experience else "",
+        f"Success: {achievements} {patents}".strip() if (achievements or patents) else "",
+        f"Recent Pubs: {pub_text}" if pub_text else "",
+    ]
+    
+    # Filter out empty fields and join with a clear separator
+    return " | ".join([p for p in parts if p.strip()]).strip()
 
-    name = professor.get("name", "").strip()
-    title = professor.get("title", "").strip()
-    department = professor.get("department", "").strip()
-    campus = professor.get("campus", "").strip()
 
-    # ── Chunk 1: Identity (always present) ──
-    identity = name
-    if title:
-        identity += f", {title}"
-    if department:
-        identity += f" in {department}"
-    if campus:
-        identity += f" at PES University {campus} Campus"
-    chunks.append(identity)
+def generate_embeddings(input_json=None, out_embeddings="professor_embeddings.npy", out_docs="professor_docs.json"):
+    if input_json is None:
+        input_json = discover_input_file()
 
-    # ── Chunk 2: Research Interests (highest signal) ──
-    interests = professor.get("Research Interest", "").strip()
-    if interests:
-        chunks.append(f"{name} research interests: {interests}")
+    if not input_json:
+        raise ValueError(
+            "Could not find professor profile JSON automatically.\n"
+            "Please run: python embed.py <path_to_professor_profile_json>"
+        )
 
-    # ── Chunk 3: About / Biography ──
-    about = professor.get("About", "").strip()
-    if about:
-        # Truncate very long bios to keep embedding focused
-        chunks.append(f"{name}: {about[:800]}")
+    with open(input_json, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    # ── Chunk 4: Research Projects ──
-    projects = professor.get("Research Projects", "").strip()
-    if projects:
-        chunks.append(f"{name} research projects: {projects[:600]}")
+    professors = extract_professor_dicts(data)
+    if not professors:
+        raise ValueError(f"No professor-like dictionaries found in {input_json}")
 
-    # ── Chunk 5: Teaching ──
-    teaching = professor.get("Teaching", "").strip()
-    if teaching:
-        chunks.append(f"{name} teaches: {teaching}")
+    docs = []
+    for idx, prof in enumerate(professors):
+        prof_id = prof.get("id") or prof.get("professor_id") or prof.get("slug") or f"prof_{idx}"
+        docs.append({
+            "id": str(prof_id),
+            "name": str(prof.get("name", f"Professor {idx}")),
+            "department": str(prof.get("department", "")),
+            "text": build_professor_text(prof),
+            "raw": prof
+        })
 
-    # ── Chunk 6: Education ──
-    education = professor.get("Education", "").strip()
-    if education:
-        chunks.append(f"{name} education: {education[:400]}")
-
-    return chunks
-
-
-def main() -> None:
-    print(f"Loading professors from {INPUT_FILE} ...")
-    with open(INPUT_FILE, "r", encoding="utf-8") as fh:
-        professors: list[dict] = json.load(fh)
-
-    print(f"Loaded {len(professors)} professors.")
-
-    # Build all chunks and track which professor each chunk belongs to
-    all_chunks: list[str] = []
-    chunk_to_prof: list[int] = []  # chunk_index -> professor_index
-
-    for prof_idx, prof in enumerate(professors):
-        chunks = build_chunks(prof)
-        for chunk_text in chunks:
-            all_chunks.append(chunk_text)
-            chunk_to_prof.append(prof_idx)
-
-    print(f"Built {len(all_chunks)} chunks from {len(professors)} professors")
-    print(f"  Average chunks per professor: {len(all_chunks) / len(professors):.1f}")
-
-    # Show a sample
-    sample_prof = professors[0].get("name", "Unknown")
-    sample_chunks = [c for i, c in enumerate(all_chunks) if chunk_to_prof[i] == 0]
-    print(f"\n── Sample chunks for '{sample_prof}' ──")
-    for i, c in enumerate(sample_chunks):
-        print(f"  Chunk {i+1}: {c[:100]}...")
-
-    print(f"\nLoading model '{MODEL_NAME}' (first run downloads ~1.3 GB) ...")
     model = SentenceTransformer(MODEL_NAME)
+    passages = [f"passage: {d['text']}" for d in docs]
+    emb = model.encode(passages, normalize_embeddings=True, show_progress_bar=True, batch_size=16)
 
-    print("Generating embeddings for all chunks ...")
-    embeddings = model.encode(
-        all_chunks,
-        show_progress_bar=True,
-        convert_to_numpy=True,
-        batch_size=16,
-        normalize_embeddings=True,  # BGE works best with normalized vectors
-    )
+    np.save(out_embeddings, np.asarray(emb, dtype=np.float32))
+    with open(out_docs, "w", encoding="utf-8") as f:
+        json.dump(docs, f, ensure_ascii=False, indent=2)
 
-    np.save(EMBEDDINGS_FILE, embeddings)
-    print(f"Embeddings saved to {EMBEDDINGS_FILE}  shape={embeddings.shape}")
-
-    with open(CHUNK_MAP_FILE, "w", encoding="utf-8") as fh:
-        json.dump(chunk_to_prof, fh)
-    print(f"Chunk map saved to {CHUNK_MAP_FILE}  ({len(chunk_to_prof)} entries)")
-
-    with open(INDEX_FILE, "w", encoding="utf-8") as fh:
-        json.dump(professors, fh, ensure_ascii=False, indent=2)
-    print(f"Professor index saved to {INDEX_FILE}")
+    print(f"Input file: {input_json}")
+    print(f"Saved {len(docs)} docs -> {out_docs}")
+    print(f"Saved embeddings -> {out_embeddings}")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    input_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    generate_embeddings(input_json=input_arg)

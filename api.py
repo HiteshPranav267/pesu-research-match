@@ -1,202 +1,129 @@
-"""
-api.py — FastAPI backend for ResearchMatch (BGE + Chunk + Cross-Encoder).
+from flask import Flask, request, jsonify, send_file
+from matcher import ProfessorMatcher
+import torch
+import os
+from transformers import pipeline
 
-Usage:
-    uvicorn api:app --reload --port 8000
-"""
+# Optimize memory allocation to avoid fragmentation
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-import json
-from contextlib import asynccontextmanager
-from typing import Optional
+app = Flask(__name__)
 
-import numpy as np
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer, CrossEncoder
+# Global placeholders
+matcher = None
+llm_pipe = None
 
-from matcher import (
-    apply_filters,
-    cosine_similarity,
-    build_profile_text,
-    expand_query,
-    BI_ENCODER_NAME,
-    CROSS_ENCODER_NAME,
-    BGE_QUERY_PREFIX,
-    RETRIEVAL_POOL,
-)
+def init_models():
+    global matcher, llm_pipe
+    if matcher is not None:
+        return
 
-EMBEDDINGS_FILE = "professors_embeddings.npy"
-CHUNK_MAP_FILE = "professors_chunk_map.json"
-INDEX_FILE = "professors_index.json"
-TOP_K = 10
+    # Clear CUDA cache before loading
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
-# ---------------------------------------------------------------------------
-# Globals
-# ---------------------------------------------------------------------------
+    print("Loading matcher models (BGE-large, BGE-reranker)...")
+    # load once
+    matcher = ProfessorMatcher(
+        docs_path="professor_docs.json",
+        embeddings_path="professor_embeddings.npy",
+        w_dense=0.4,
+        w_bm25=0.6,
+    )
 
-professors: list[dict] = []
-embeddings: np.ndarray = np.array([])
-chunk_to_prof: list[int] = []
-num_profs: int = 0
-bi_encoder: Optional[SentenceTransformer] = None
-cross_encoder: Optional[CrossEncoder] = None
+    # Local LLM for personalized generation
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    print(f"Loading Local LLM on {device} (Qwen2.5-0.5B-Instruct)...")
+    llm_pipe = pipeline(
+        "text-generation", 
+        model="Qwen/Qwen2.5-0.5B-Instruct", 
+        device=device,
+        model_kwargs={"torch_dtype": torch.float16} if device == "cuda:0" else {}
+    )
 
-
-# ---------------------------------------------------------------------------
-# Lifespan
-# ---------------------------------------------------------------------------
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global professors, embeddings, chunk_to_prof, num_profs, bi_encoder, cross_encoder
-
-    print("Loading professor index ...")
-    with open(INDEX_FILE, "r", encoding="utf-8") as fh:
-        professors = json.load(fh)
-    num_profs = len(professors)
-    print(f"  Loaded {num_profs} professors.")
-
-    print("Loading chunk embeddings ...")
-    embeddings = np.load(EMBEDDINGS_FILE)
-    print(f"  Embeddings shape: {embeddings.shape}")
-
-    print("Loading chunk map ...")
-    with open(CHUNK_MAP_FILE, "r", encoding="utf-8") as fh:
-        chunk_to_prof = json.load(fh)
-    print(f"  {len(chunk_to_prof)} chunks mapped.")
-
-    print(f"Loading bi-encoder '{BI_ENCODER_NAME}' ...")
-    bi_encoder = SentenceTransformer(BI_ENCODER_NAME)
-    print("  Bi-encoder ready.")
-
-    print(f"Loading cross-encoder '{CROSS_ENCODER_NAME}' ...")
-    cross_encoder = CrossEncoder(CROSS_ENCODER_NAME)
-    print("  Cross-encoder ready.")
-
-    yield
+@app.before_request
+def setup():
+    # Only load models in the child process if debug is on, or always if debug is off
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+        init_models()
 
 
-# ---------------------------------------------------------------------------
-# App
-# ---------------------------------------------------------------------------
-
-app = FastAPI(title="ResearchMatch API", version="3.0.0", lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.route("/", methods=["GET"])
+def index():
+    return send_file("index.html")
 
 
-class MatchRequest(BaseModel):
-    query: str
-    campus: Optional[str] = None
-    department: Optional[str] = None
-
-
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
-
-@app.get("/", include_in_schema=False)
-def read_root():
-    return FileResponse("index.html")
-
-
-@app.get("/professors")
-def get_professors(
-    campus: Optional[str] = Query(default=None),
-    department: Optional[str] = Query(default=None),
-):
-    result = professors
-    if campus:
-        result = [p for p in result if p.get("campus", "").upper() == campus.upper()]
-    if department:
-        result = [p for p in result if p.get("department", "").lower() == department.lower()]
-    return result
-
-
-@app.get("/departments")
-def get_departments(campus: Optional[str] = Query(default=None)):
-    filtered = professors
+@app.route("/departments", methods=["GET"])
+def get_departments():
+    campus = request.args.get("campus")
+    filtered = [doc.get("raw", {}) for doc in matcher.docs]
     if campus:
         filtered = [p for p in filtered if p.get("campus", "").upper() == campus.upper()]
 
-    dept_map: dict[str, set] = {}
+    dept_map = {}
     for p in filtered:
         c = p.get("campus", "Unknown")
         d = p.get("department", "Unknown")
-        dept_map.setdefault(c, set()).add(d)
+        if c not in dept_map:
+            dept_map[c] = set()
+        dept_map[c].add(d)
 
-    return {c: sorted(depts) for c, depts in dept_map.items()}
+    return jsonify({c: sorted(list(depts)) for c, depts in dept_map.items()})
 
 
-@app.post("/match")
-def match_professors(req: MatchRequest):
-    """
-    Three-phase matching:
-    1. Query expansion (domain synonyms for short queries)
-    2. BGE chunk retrieval with max-pool
-    3. Cross-encoder re-ranking
-    """
-    if bi_encoder is None or cross_encoder is None or embeddings.size == 0:
-        raise HTTPException(status_code=503, detail="Models not yet loaded.")
+@app.route("/match", methods=["POST"])
+def search():
+    body = request.get_json(silent=True) or {}
+    query = body.get("query", "").strip()
+    if not query:
+        return jsonify({"error": "query is required"}), 400
 
-    if not req.query.strip():
-        raise HTTPException(status_code=400, detail="Query must not be empty.")
+    top_k_retrieve = int(body.get("top_k_retrieve", 50))
+    top_k_final = int(body.get("top_k_final", 10))
 
-    # ── Phase 0: Query Expansion ──
-    expanded_query = expand_query(req.query)
+    campus = body.get("campus")
+    department = body.get("department")
 
-    # ── Phase 1: BGE Chunk Retrieval + Max-Pool ──
-    prefixed_query = BGE_QUERY_PREFIX + expanded_query
-    query_vec = bi_encoder.encode(
-        [prefixed_query],
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-    )[0]
-
-    chunk_scores = cosine_similarity(query_vec, embeddings)
-
-    # Max-pool per professor
-    prof_scores = np.zeros(num_profs)
-    for chunk_idx, prof_idx in enumerate(chunk_to_prof):
-        if chunk_scores[chunk_idx] > prof_scores[prof_idx]:
-            prof_scores[prof_idx] = chunk_scores[chunk_idx]
-
-    prof_scores = apply_filters(prof_scores, professors, req.campus, req.department)
-
-    pool_size = min(RETRIEVAL_POOL, num_profs)
-    candidate_indices = np.argsort(prof_scores)[::-1][:pool_size]
-    candidate_indices = [i for i in candidate_indices if prof_scores[i] > 0]
-
-    if not candidate_indices:
-        return {"results": []}
-
-    # ── Phase 2: Cross-Encoder Re-ranking ──
-    pairs = []
-    for idx in candidate_indices:
-        prof_text = build_profile_text(professors[idx])
-        pairs.append((req.query, prof_text))
-
-    ce_scores = cross_encoder.predict(pairs)
-    ce_scores_norm = 1 / (1 + np.exp(-np.array(ce_scores)))
-
-    ranked = sorted(
-        zip(candidate_indices, ce_scores_norm),
-        key=lambda x: x[1],
-        reverse=True,
+    results = matcher.search(
+        query=query,
+        top_k_retrieve=top_k_retrieve,
+        top_k_final=top_k_final,
+        campus=campus,
+        department=department
     )
 
-    results = []
-    for idx, score in ranked[:TOP_K]:
-        prof = dict(professors[idx])
-        prof["score"] = round(float(score), 4)
-        results.append(prof)
+    # Generate a personalized summary using the Local LLM
+    ai_summary = ""
+    if results:
+        # Provide the top 3 matches to the LLM context
+        context_lines = []
+        for i, r in enumerate(results[:3]):
+            desc = r.get("raw", {}).get("About", r.get("raw", {}).get("Teaching", "No info"))
+            context_lines.append(f"Professor: {r.get('name')}\nDepartment: {r.get('department')}\nBio: {desc[:250]}...")
+        
+        context_str = "\n".join(context_lines)
+        prompt = f"""You are an AI advisor for PES University matching a student to relevant professors.
+Student request: "{query}"
 
-    return {"results": results}
+Here are the top matches from our database:
+{context_str}
+
+Write a short, engaging 2-sentence response directly addressing the student. Explain exactly why these specific professors are a good match for their research interests. Do not invent any information outside of the provided bios.
+"""
+        messages = [{"role": "system", "content": "You are a helpful academic advisor."},
+                    {"role": "user", "content": prompt}]
+        
+        try:
+            res = llm_pipe(messages, max_new_tokens=80, do_sample=False)
+            ai_summary = res[0]['generated_text'][-1]['content'].strip()
+        except Exception as e:
+            ai_summary = "An error occurred generating the AI insight."
+            print("LLM Error:", e)
+
+    return jsonify({
+        "results": results,
+        "ai_summary": ai_summary
+    })
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=True)
