@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ResearchMatch — PES University</title>
+  <meta name="description"
+    content="Find your ideal research professor at PES University. AI-powered semantic matching across 500+ faculty profiles." />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+
+  <!-- pdf.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- React + Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "background": "#0e0e11",
+            "surface-tint": "#9dfea8",
+            "on-surface-variant": "#acaaae",
+            "on-background": "#fcf8fc",
+            "primary": "#9dfea8",
+            "primary-container": "#56b366",
+            "primary-dim": "#8fef9b",
+            "secondary": "#9691ff",
+            "secondary-container": "#3d35a6",
+            "on-primary": "#006327",
+            "on-secondary": "#140076",
+            "on-surface": "#fcf8fc",
+            "on-primary-container": "#002a0c",
+            "on-secondary-container": "#cfcbff",
+            "surface-container-lowest": "#000000",
+            "surface-container-low": "#131316",
+            "surface-container": "#19191d",
+            "surface-container-high": "#1f1f23",
+            "surface-container-highest": "#25252a",
+            "surface-bright": "#2c2c30",
+            "surface-variant": "#25252a",
+            "outline": "#767579",
+            "outline-variant": "#48474b",
+            "error": "#ff7351",
+            "error-container": "#b92902",
+            "on-error": "#450900",
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk", "sans-serif"],
+            "body": ["Manrope", "sans-serif"],
+            "label": ["Space Grotesk", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px",
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .organic-blob {
+      filter: blur(80px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .kinetic-text {
+      line-height: 0.9;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0e0e11;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #48474b;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #767579;
+    }
+
+    /* Neon glow on textarea focus */
+    .neon-border {
+      position: relative;
+    }
+
+    .neon-border::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      width: 0;
+      background: #9dfea8;
+      box-shadow: 0 0 15px rgba(157, 254, 168, 0.5);
+      transition: width 0.5s ease;
+    }
+
+    .neon-border:focus-within::after {
+      width: 100%;
+    }
+
+    /* Skeleton pulse */
+    @keyframes shimmer {
+      0% {
+        background-position: -400px 0;
+      }
+
+      100% {
+        background-position: 400px 0;
+      }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #1f1f23 25%, #2c2c30 50%, #1f1f23 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    /* Score ring */
+    .score-ring {
+      background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), #25252a 0);
+    }
+
+    /* Drop zone */
+    .drop-active {
+      border-color: #9dfea8 !important;
+      background: rgba(157, 254, 168, 0.05) !important;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary overflow-x-hidden">
+
+  <!-- ── Navigation ── -->
+  <nav class="bg-[#0e0e11]/60 backdrop-blur-xl shadow-[0_0_48px_0_rgba(61,53,166,0.06)] sticky top-0 z-50">
+    <div class="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
+      <div class="flex items-center gap-8">
+        <span class="text-2xl font-bold tracking-tighter text-primary font-headline">ResearchMatch PES</span>
+        <div class="hidden md:flex items-center gap-6">
+          <a class="text-primary font-bold border-b-2 border-primary font-label transition-colors duration-300"
+            href="#">Explore</a>
+          <a class="text-on-surface-variant font-medium font-label hover:text-primary transition-colors duration-300"
+            href="#">About</a>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://staff.pes.edu" target="_blank"
+          class="bg-surface-container-high px-6 py-2 rounded-full font-label text-sm font-bold border border-outline-variant/20 hover:text-primary transition-colors">Staff
+          Portal ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main App Mount ── -->
+  <main class="relative isolate" id="root"></main>
+
+  <!-- ── Footer ── -->
+  <footer class="bg-[#000000] rounded-t-[3rem] mt-20">
+    <div
+      class="grid grid-cols-1 md:grid-cols-4 gap-12 px-12 py-20 w-full max-w-screen-2xl mx-auto font-body text-sm tracking-wide">
+      <div class="space-y-6">
+        <span class="text-xl font-black text-primary font-headline">ResearchMatch PES</span>
+        <p class="text-on-surface-variant leading-relaxed">AI-powered faculty discovery. Connect with cross-departmental
+          pioneers and accelerate your academic trajectory.</p>
+      </div>
+      <div class="space-y-6">
+        <h4 class="text-primary font-bold uppercase tracking-widest text-xs">University Links</h4>
+        <ul class="space-y-3">
+          <li><a class="text-on-surface-variant hover:text-primary transition-all" href="https://pes.edu"
+              target="_blank">PES University</a></li>
+          <li><a class="text-on-surface-variant hover:text-primary transition-all" href="https://staff.pes.edu"
+              target="_blank">Staff Directory</a></li>
+        </ul>
+      </div>
+      <div class="space-y-6">
+        <h4 class="text-primary font-bold uppercase tracking-widest text-xs">Tech Stack</h4>
+        <ul class="space-y-3">
+          <li class="text-on-surface-variant">all-mpnet-base-v2</li>
+          <li class="text-on-surface-variant">Cross-Encoder Re-ranking</li>
+          <li class="text-on-surface-variant">FastAPI + React</li>
+        </ul>
+      </div>
+      <div class="space-y-6">
+        <h4 class="text-primary font-bold uppercase tracking-widest text-xs">System Status</h4>
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+          <span class="text-on-surface-variant">Two-Stage Engine Active</span>
+        </div>
+        <p class="text-on-surface-variant text-xs mt-8">© MLA Project · ResearchMatch</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- React Application                                             -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+    const API = "http://localhost:8000";
+    const MIN_SCORE = 0.25;
+
+    // ── Score Ring Component ──
+    function ScoreRing({ score }) {
+      const pct = Math.round(score * 100);
+      const color = pct >= 75 ? "#9dfea8" : pct >= 50 ? "#9691ff" : "#ff7351";
+      return (
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 score-ring"
+          style={{ "--ring-color": color, "--pct": pct }}
+        >
+          <div className="w-11 h-11 rounded-full bg-surface-container-high flex items-center justify-center">
+            <span className="text-sm font-headline font-bold" style={{ color }}>{pct}%</span>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Skeleton Loader ──
+    function SkeletonCards() {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl p-6 bg-surface-container-high border border-outline-variant/10">
+              <div className="flex gap-4 items-start">
+                <div className="w-14 h-14 rounded-full skeleton flex-shrink-0" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-5 skeleton rounded w-1/3" />
+                  <div className="h-4 skeleton rounded w-2/3" />
+                  <div className="h-3 skeleton rounded w-full" />
+                  <div className="h-3 skeleton rounded w-4/5" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ── Professor Result Card ──
+    function ProfCard({ prof, rank }) {
+      const [expanded, setExpanded] = useState(false);
+      const interests = prof["Research Interest"] || "";
+      const about = prof["About"] || "";
+      const email = prof["Email"] || "";
+
+      return (
+        <div className="group rounded-xl p-6 bg-surface-container-high border border-outline-variant/10 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_0_40px_rgba(157,254,168,0.05)]">
+          <div className="flex gap-5 items-start">
+            {/* Score */}
+            <ScoreRing score={prof.score} />
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-headline font-bold text-lg text-on-surface leading-tight">{prof.name}</h3>
+                  <p className="text-on-surface-variant text-sm mt-0.5 line-clamp-1">{prof.title}</p>
+                </div>
+                <span className="text-on-surface-variant/40 font-headline font-bold text-2xl">#{rank}</span>
+              </div>
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="px-3 py-1 rounded-full text-xs font-label font-bold bg-primary/10 text-primary border border-primary/20">
+                  {prof.department}
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-label font-bold bg-secondary/10 text-secondary border border-secondary/20">
+                  {prof.campus} Campus
+                </span>
+              </div>
+
+              {/* Research Interests */}
+              {interests && (
+                <div className="mt-4 p-3 rounded-lg bg-surface-container-lowest/50 border border-outline-variant/10">
+                  <span className="text-xs font-label font-bold text-primary uppercase tracking-widest">Research Interests</span>
+                  <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{interests}</p>
+                </div>
+              )}
+
+              {/* About (collapsible) */}
+              {about && (
+                <div className="mt-3">
+                  <p className={`text-sm text-on-surface-variant/70 leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>
+                    {about}
+                  </p>
+                  {about.length > 150 && (
+                    <button
+                      className="text-xs text-secondary font-bold mt-1 hover:underline"
+                      onClick={() => setExpanded(!expanded)}
+                    >
+                      {expanded ? "Show less" : "Read more"}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-4 mt-4">
+                {prof.profile_url && (
+                  <a
+                    href={prof.profile_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-label font-bold text-primary hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-base">open_in_new</span>
+                    View Profile
+                  </a>
+                )}
+                {email && (
+                  <a
+                    href={`mailto:${email}`}
+                    className="inline-flex items-center gap-2 text-sm font-label font-bold text-secondary hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-base">mail</span>
+                    {email}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Main App ──
+    function App() {
+      const [campus, setCampus] = useState("RR");
+      const [departments, setDepartments] = useState([]);
+      const [activeDept, setActiveDept] = useState(null);
+      const [tab, setTab] = useState("text");
+      const [query, setQuery] = useState("");
+      const [pdfText, setPdfText] = useState("");
+      const [pdfName, setPdfName] = useState("");
+      const [dragOver, setDragOver] = useState(false);
+      const [loading, setLoading] = useState(false);
+      const [results, setResults] = useState(null);
+      const [profCount, setProfCount] = useState(538);
+      const resultsRef = useRef(null);
+
+      // Fetch departments
+      useEffect(() => {
+        setActiveDept(null);
+        setResults(null);
+        fetch(`${API}/departments?campus=${campus}`)
+          .then((r) => r.json())
+          .then((data) => setDepartments(data[campus] || []))
+          .catch(() => setDepartments([]));
+      }, [campus]);
+
+      // PDF extraction
+      const extractPdf = useCallback(async (file) => {
+        setPdfName(file.name);
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+        let text = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map((t) => t.str).join(" ") + " ";
+        }
+        setPdfText(text.trim());
+      }, []);
+
+      const handleFile = useCallback(
+        (file) => { if (file && file.type === "application/pdf") extractPdf(file); },
+        [extractPdf]
+      );
+
+      const effectiveQuery = tab === "text" ? query : pdfText;
+
+      const handleMatch = async () => {
+        if (!effectiveQuery.trim()) return;
+        setLoading(true);
+        setResults(null);
+        try {
+          const body = { query: effectiveQuery, campus };
+          if (activeDept) body.department = activeDept;
+          const resp = await fetch(`${API}/match`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await resp.json();
+          const filtered = (data.results || []).filter((p) => p.score >= MIN_SCORE);
+          setResults(filtered);
+          // Scroll to results
+          setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+        } catch {
+          alert("Could not reach the API. Make sure the server is running on port 8000.");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <>
+          {/* Organic Blobs */}
+          <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary-container/20 rounded-full organic-blob" />
+          <div className="absolute top-[20%] left-[-15%] w-[800px] h-[800px] bg-secondary-container/30 rounded-full organic-blob" />
+          <div className="absolute bottom-[0%] right-[10%] w-[500px] h-[500px] bg-primary-container/10 rounded-full organic-blob" />
+
+          <section className="max-w-screen-2xl mx-auto px-6 md:px-8 pt-16 md:pt-20 pb-20 md:pb-40">
+            {/* ── Hero ── */}
+            <div className="relative z-10 mb-12 md:mb-16">
+              <h1 className="font-headline font-bold text-5xl md:text-[7rem] kinetic-text tracking-tighter max-w-4xl mb-6">
+                <span className="text-primary">Find your</span><br />
+                <span className="text-secondary leading-none">scholarly synergy</span>
+              </h1>
+              <p className="text-on-surface-variant text-lg md:text-2xl max-w-2xl font-medium tracking-tight">
+                Break the traditional silos. AI-powered two-stage matching connects you with the right PES faculty for your research.
+              </p>
+            </div>
+
+            {/* ── Main Grid ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
+
+              {/* ── Left: Filters ── */}
+              <div className="lg:col-span-4 space-y-10">
+
+                {/* Campus Toggle */}
+                <div className="space-y-4">
+                  <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Select Campus</label>
+                  <div className="bg-surface-container-low p-2 rounded-full inline-flex gap-2">
+                    {["RR", "EC"].map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setCampus(c)}
+                        className={`px-8 py-3 rounded-full font-bold font-label transition-all ${campus === c
+                          ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+                          : "text-on-surface-variant hover:text-on-surface"
+                          }`}
+                      >
+                        {c} Campus
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Department Chips */}
+                {departments.length > 0 && (
+                  <div className="space-y-4">
+                    <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Department Filter</label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setActiveDept(null)}
+                        className={`px-5 py-2 rounded-full border-2 font-bold font-label text-sm transition-colors ${activeDept === null
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-outline-variant/40 text-on-surface-variant hover:border-primary hover:text-primary"
+                          }`}
+                      >
+                        All
+                      </button>
+                      {departments.map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => setActiveDept(d === activeDept ? null : d)}
+                          className={`px-5 py-2 rounded-full border-2 font-bold font-label text-sm transition-colors ${activeDept === d
+                            ? "border-secondary text-secondary bg-secondary/10"
+                            : "border-outline-variant/40 text-on-surface-variant hover:border-secondary hover:text-secondary"
+                            }`}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Stats Card */}
+                <div className="p-6 rounded-xl bg-surface-container-high border border-outline-variant/10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="material-symbols-outlined filled text-primary text-2xl">analytics</span>
+                    <span className="font-headline font-bold text-lg">Engine Stats</span>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Faculty Profiles</span>
+                      <span className="font-bold text-primary">{profCount}+</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Bi-Encoder</span>
+                      <span className="font-bold text-on-surface">mpnet-base-v2</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Re-ranker</span>
+                      <span className="font-bold text-secondary">Cross-Encoder</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Pipeline</span>
+                      <span className="font-bold text-primary">Two-Stage</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Right: Input & Results ── */}
+              <div className="lg:col-span-8">
+                <div className="bg-surface-container-low rounded-xl p-6 md:p-12 border border-outline-variant/10 shadow-2xl">
+
+                  {/* Tab Selector */}
+                  <div className="flex gap-8 mb-8 border-b border-outline-variant/20">
+                    <button
+                      onClick={() => setTab("text")}
+                      className={`pb-4 text-xl md:text-2xl font-headline font-bold transition-all ${tab === "text"
+                        ? "text-on-surface border-b-4 border-primary"
+                        : "text-on-surface-variant hover:text-on-surface"
+                        }`}
+                    >
+                      Describe Interests
+                    </button>
+                    <button
+                      onClick={() => setTab("pdf")}
+                      className={`pb-4 text-xl md:text-2xl font-headline font-bold transition-all flex items-center gap-3 ${tab === "pdf"
+                        ? "text-on-surface border-b-4 border-secondary"
+                        : "text-on-surface-variant hover:text-on-surface"
+                        }`}
+                    >
+                      Resume Upload
+                      <span className="text-xs bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-label uppercase">PDF</span>
+                    </button>
+                  </div>
+
+                  {/* Input Area */}
+                  <div className="space-y-6">
+                    {tab === "text" ? (
+                      <div className="neon-border">
+                        <textarea
+                          className="w-full h-64 md:h-80 bg-surface-container-lowest border-none rounded-lg p-6 md:p-8 text-lg font-body text-on-surface placeholder:text-outline/40 focus:ring-0 resize-none"
+                          placeholder="Describe your research interests, current projects, or a specific problem you're looking to solve...&#10;&#10;Example: I'm interested in applying deep learning to medical image analysis, specifically for early cancer detection using CNNs and transformer architectures."
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${dragOver
+                          ? "drop-active"
+                          : "border-outline-variant/30 hover:border-primary/50"
+                          }`}
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOver(false);
+                          handleFile(e.dataTransfer.files[0]);
+                        }}
+                      >
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={(e) => handleFile(e.target.files[0])}
+                        />
+                        <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-4 block">upload_file</span>
+                        <p className="text-on-surface-variant font-medium text-lg">Drag & drop your resume PDF</p>
+                        <p className="text-outline text-sm mt-2">or click to browse</p>
+                        {pdfName && (
+                          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary font-label font-bold text-sm">
+                            <span className="material-symbols-outlined text-base">check_circle</span>
+                            {pdfName}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bottom Actions */}
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                      <div className="flex items-center gap-3 text-on-surface-variant">
+                        <span className="material-symbols-outlined filled text-primary text-xl">verified</span>
+                        <span className="text-sm font-medium">Matching against {profCount}+ enriched faculty profiles</span>
+                      </div>
+                      <button
+                        disabled={!effectiveQuery.trim() || loading}
+                        onClick={handleMatch}
+                        className="w-full md:w-auto bg-secondary text-on-surface px-10 py-5 rounded-full font-headline font-black text-lg flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(150,145,255,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
+                      >
+                        {loading ? (
+                          <>
+                            <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            Find Matching Professors
+                            <span className="material-symbols-outlined text-2xl">bolt</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Results Section ── */}
+                <div ref={resultsRef}>
+                  {loading && (
+                    <div className="mt-10">
+                      <h2 className="font-headline font-bold text-2xl mb-6 flex items-center gap-3">
+                        <span className="material-symbols-outlined text-secondary animate-pulse">neurology</span>
+                        Two-stage analysis in progress...
+                      </h2>
+                      <SkeletonCards />
+                    </div>
+                  )}
+
+                  {!loading && results !== null && (
+                    <div className="mt-10">
+                      <h2 className="font-headline font-bold text-2xl mb-6">
+                        {results.length > 0 ? (
+                          <span className="flex items-center gap-3">
+                            <span className="material-symbols-outlined filled text-primary text-3xl">school</span>
+                            {results.length} Match{results.length !== 1 ? "es" : ""} Found
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-3 text-on-surface-variant">
+                            <span className="material-symbols-outlined text-3xl">search_off</span>
+                            No Strong Matches
+                          </span>
+                        )}
+                      </h2>
+
+                      {results.length === 0 ? (
+                        <div className="text-center py-16 px-8 rounded-xl bg-surface-container-high border border-outline-variant/10">
+                          <span className="text-5xl block mb-4">🔍</span>
+                          <p className="text-on-surface-variant text-lg max-w-md mx-auto">
+                            No professors scored above {Math.round(MIN_SCORE * 100)}% relevance. Try broadening your description or removing department filters.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {results.map((prof, i) => (
+                            <ProfCard key={i} prof={prof} rank={i + 1} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+
+</html>

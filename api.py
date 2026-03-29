@@ -1,13 +1,8 @@
 """
-api.py — FastAPI backend for ResearchMatch.
+api.py — FastAPI backend for ResearchMatch (BGE + Chunk + Cross-Encoder).
 
 Usage:
     uvicorn api:app --reload --port 8000
-
-Endpoints:
-    GET  /professors          — list all professors (optional ?campus= / ?department=)
-    GET  /departments         — unique departments per campus (optional ?campus=)
-    POST /match               — match a student query to professors
 """
 
 import json
@@ -17,65 +12,77 @@ from typing import Optional
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, CrossEncoder
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-from matcher import apply_filters
+from matcher import (
+    apply_filters,
+    cosine_similarity,
+    build_profile_text,
+    expand_query,
+    BI_ENCODER_NAME,
+    CROSS_ENCODER_NAME,
+    BGE_QUERY_PREFIX,
+    RETRIEVAL_POOL,
+)
 
 EMBEDDINGS_FILE = "professors_embeddings.npy"
+CHUNK_MAP_FILE = "professors_chunk_map.json"
 INDEX_FILE = "professors_index.json"
 TOP_K = 10
 
 # ---------------------------------------------------------------------------
-# Globals (loaded once at startup)
+# Globals
 # ---------------------------------------------------------------------------
 
 professors: list[dict] = []
 embeddings: np.ndarray = np.array([])
-model: Optional[SentenceTransformer] = None
+chunk_to_prof: list[int] = []
+num_profs: int = 0
+bi_encoder: Optional[SentenceTransformer] = None
+cross_encoder: Optional[CrossEncoder] = None
 
 
 # ---------------------------------------------------------------------------
-# Lifespan (startup / shutdown)
+# Lifespan
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for the FastAPI application.
-
-    Loads the professor index, pre-computed embeddings, and the sentence-transformer
-    model once at startup so every request can reuse them without re-loading.
-    No explicit cleanup is required on shutdown.
-    """
-    global professors, embeddings, model
+    global professors, embeddings, chunk_to_prof, num_profs, bi_encoder, cross_encoder
 
     print("Loading professor index ...")
     with open(INDEX_FILE, "r", encoding="utf-8") as fh:
         professors = json.load(fh)
-    print(f"  Loaded {len(professors)} professors.")
+    num_profs = len(professors)
+    print(f"  Loaded {num_profs} professors.")
 
-    print("Loading embeddings ...")
+    print("Loading chunk embeddings ...")
     embeddings = np.load(EMBEDDINGS_FILE)
     print(f"  Embeddings shape: {embeddings.shape}")
 
-    print(f"Loading embedding model '{MODEL_NAME}' ...")
-    model = SentenceTransformer(MODEL_NAME)
-    print("  Model ready.")
+    print("Loading chunk map ...")
+    with open(CHUNK_MAP_FILE, "r", encoding="utf-8") as fh:
+        chunk_to_prof = json.load(fh)
+    print(f"  {len(chunk_to_prof)} chunks mapped.")
 
-    yield  # Application runs here
+    print(f"Loading bi-encoder '{BI_ENCODER_NAME}' ...")
+    bi_encoder = SentenceTransformer(BI_ENCODER_NAME)
+    print("  Bi-encoder ready.")
 
-    # Shutdown: nothing special to do
+    print(f"Loading cross-encoder '{CROSS_ENCODER_NAME}' ...")
+    cross_encoder = CrossEncoder(CROSS_ENCODER_NAME)
+    print("  Cross-encoder ready.")
+
+    yield
 
 
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="ResearchMatch API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="ResearchMatch API", version="3.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -86,10 +93,6 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
 class MatchRequest(BaseModel):
     query: str
     campus: Optional[str] = None
@@ -97,26 +100,19 @@ class MatchRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def cosine_similarity(query_vec: np.ndarray, matrix: np.ndarray) -> np.ndarray:
-    query_norm = query_vec / (np.linalg.norm(query_vec) + 1e-10)
-    matrix_norms = np.linalg.norm(matrix, axis=1, keepdims=True) + 1e-10
-    matrix_normed = matrix / matrix_norms
-    return matrix_normed @ query_norm
-
-
-# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
+@app.get("/", include_in_schema=False)
+def read_root():
+    return FileResponse("index.html")
+
 
 @app.get("/professors")
 def get_professors(
     campus: Optional[str] = Query(default=None),
     department: Optional[str] = Query(default=None),
 ):
-    """Return all professors, optionally filtered by campus and/or department."""
     result = professors
     if campus:
         result = [p for p in result if p.get("campus", "").upper() == campus.upper()]
@@ -127,7 +123,6 @@ def get_professors(
 
 @app.get("/departments")
 def get_departments(campus: Optional[str] = Query(default=None)):
-    """Return unique departments, grouped by campus."""
     filtered = professors
     if campus:
         filtered = [p for p in filtered if p.get("campus", "").upper() == campus.upper()]
@@ -143,25 +138,65 @@ def get_departments(campus: Optional[str] = Query(default=None)):
 
 @app.post("/match")
 def match_professors(req: MatchRequest):
-    """Embed a student query and return top-10 matching professors."""
-    if model is None or embeddings.size == 0:
-        raise HTTPException(status_code=503, detail="Model not yet loaded.")
+    """
+    Three-phase matching:
+    1. Query expansion (domain synonyms for short queries)
+    2. BGE chunk retrieval with max-pool
+    3. Cross-encoder re-ranking
+    """
+    if bi_encoder is None or cross_encoder is None or embeddings.size == 0:
+        raise HTTPException(status_code=503, detail="Models not yet loaded.")
 
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query must not be empty.")
 
-    query_vec = model.encode([req.query], convert_to_numpy=True)[0]
-    scores = cosine_similarity(query_vec, embeddings)
-    scores = apply_filters(scores, professors, req.campus, req.department)
+    # ── Phase 0: Query Expansion ──
+    expanded_query = expand_query(req.query)
 
-    top_indices = np.argsort(scores)[::-1][:TOP_K]
+    # ── Phase 1: BGE Chunk Retrieval + Max-Pool ──
+    prefixed_query = BGE_QUERY_PREFIX + expanded_query
+    query_vec = bi_encoder.encode(
+        [prefixed_query],
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    )[0]
+
+    chunk_scores = cosine_similarity(query_vec, embeddings)
+
+    # Max-pool per professor
+    prof_scores = np.zeros(num_profs)
+    for chunk_idx, prof_idx in enumerate(chunk_to_prof):
+        if chunk_scores[chunk_idx] > prof_scores[prof_idx]:
+            prof_scores[prof_idx] = chunk_scores[chunk_idx]
+
+    prof_scores = apply_filters(prof_scores, professors, req.campus, req.department)
+
+    pool_size = min(RETRIEVAL_POOL, num_profs)
+    candidate_indices = np.argsort(prof_scores)[::-1][:pool_size]
+    candidate_indices = [i for i in candidate_indices if prof_scores[i] > 0]
+
+    if not candidate_indices:
+        return {"results": []}
+
+    # ── Phase 2: Cross-Encoder Re-ranking ──
+    pairs = []
+    for idx in candidate_indices:
+        prof_text = build_profile_text(professors[idx])
+        pairs.append((req.query, prof_text))
+
+    ce_scores = cross_encoder.predict(pairs)
+    ce_scores_norm = 1 / (1 + np.exp(-np.array(ce_scores)))
+
+    ranked = sorted(
+        zip(candidate_indices, ce_scores_norm),
+        key=lambda x: x[1],
+        reverse=True,
+    )
+
     results = []
-    for idx in top_indices:
-        score = float(scores[idx])
-        if score <= 0:
-            continue
+    for idx, score in ranked[:TOP_K]:
         prof = dict(professors[idx])
-        prof["score"] = round(score, 4)
+        prof["score"] = round(float(score), 4)
         results.append(prof)
 
     return {"results": results}

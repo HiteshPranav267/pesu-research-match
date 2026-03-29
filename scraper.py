@@ -84,18 +84,20 @@ def scrape_page(url: str) -> list[dict]:
     soup = BeautifulSoup(response.text, "html.parser")
     professors = []
 
-    # Each professor card is an <a> tag wrapping image + name + title
-    for card in soup.select("a.faculty-card, a[href*='/profile/'], div.staff-card a"):
+    # Each professor card is in a '<div class="staff-profile ...">'
+    for card in soup.select("div.staff-profile"):
         name_tag = card.find("h4")
         title_tag = card.find("h5")
         img_tag = card.find("img")
+        a_tag = card.find("a")
 
         if not name_tag:
             continue
 
         name = name_tag.get_text(strip=True)
         title = title_tag.get_text(strip=True) if title_tag else ""
-        href = card.get("href", "")
+        href = a_tag.get("href", "") if a_tag else ""
+        
         profile_url = (BASE_URL + href) if href.startswith("/") else href
         photo_src = img_tag.get("src", "") if img_tag else ""
         photo_url = (BASE_URL + photo_src) if photo_src.startswith("/") else photo_src
@@ -124,6 +126,7 @@ def scrape_department(campus: str, dept_slug: str) -> list[dict]:
     all_professors: list[dict] = []
 
     page = 1
+    last_page_profs = []
     while True:
         url = base_url if page == 1 else f"{base_url}?page={page}"
         print(f"  Fetching: {url}")
@@ -131,6 +134,12 @@ def scrape_department(campus: str, dept_slug: str) -> list[dict]:
 
         if not professors:
             break
+            
+        # Prevent infinite loops when a page doesn't exist (returns the same content)
+        if last_page_profs and professors[0]["name"] == last_page_profs[0]["name"]:
+            break
+        
+        last_page_profs = professors
 
         for prof in professors:
             prof["department"] = dept_display_name

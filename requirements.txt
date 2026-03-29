@@ -1,0 +1,8 @@
+requests
+beautifulsoup4
+sentence-transformers
+fastapi
+uvicorn
+numpy
+scipy
+pydantic
