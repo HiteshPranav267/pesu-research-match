@@ -32,13 +32,12 @@ def init_models():
     )
 
     # Local LLM for personalized generation
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    print(f"Loading Local LLM on {device} (Qwen2.5-0.5B-Instruct)...")
+    print(f"Loading Local LLM (Qwen2.5-0.5B-Instruct)...")
     llm_pipe = pipeline(
         "text-generation", 
         model="Qwen/Qwen2.5-0.5B-Instruct", 
-        device=device,
-        model_kwargs={"torch_dtype": torch.float16} if device == "cuda:0" else {}
+        device_map="auto",
+        model_kwargs={"torch_dtype": torch.float16 if torch.cuda.is_available() else torch.float32}
     )
 
 @app.before_request
@@ -95,8 +94,8 @@ def search():
     if not query:
         return jsonify({"error": "query is required"}), 400
 
-    top_k_retrieve = int(body.get("top_k_retrieve", 50))
-    top_k_final = int(body.get("top_k_final", 10))
+    top_k_retrieve = int(body.get("top_k_retrieve", 500))
+    top_k_final = int(body.get("top_k_final", 500))
 
     campus = body.get("campus")
     department = body.get("department")
