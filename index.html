@@ -178,7 +178,10 @@
   <!-- ══════════════════════════════════════════════════════════════ -->
   <script type="text/babel">
     const { useState, useEffect, useCallback, useRef } = React;
-    const API = "";
+    // --- CONFIGURATION ---
+    // For local dev with separate frontend: use "http://localhost:8000"
+    // For Hugging Face / Production: leave as ""
+    const API_BASE_URL = ""; 
     const MIN_SCORE = 0.65;
 
     // ── Score Ring Component ──
@@ -548,17 +551,49 @@
       const [results, setResults] = useState(null);
       const [aiSummary, setAiSummary] = useState("");
       const [profCount, setProfCount] = useState(538);
+      const [suggestions, setSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
       const resultsRef = useRef(null);
+      const suggestRef = useRef(null);
 
       // Fetch departments
       useEffect(() => {
         setActiveDept(null);
         setResults(null);
-        fetch(`${API}/departments?campus=${campus}`)
+        fetch(`${API_BASE_URL}/departments?campus=${campus}`)
           .then((r) => r.json())
           .then((data) => setDepartments(data[campus] || []))
           .catch(() => setDepartments([]));
       }, [campus]);
+
+      // Fetch suggestions
+      useEffect(() => {
+        if (tab !== "text" || query.trim().length < 2) {
+          setSuggestions([]);
+          return;
+        }
+        const delayDebounce = setTimeout(() => {
+          fetch(`${API_BASE_URL}/suggest?query=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(data => {
+              setSuggestions(data);
+              setShowSuggestions(data.length > 0);
+            })
+            .catch(() => setSuggestions([]));
+        }, 300);
+        return () => clearTimeout(delayDebounce);
+      }, [query, tab]);
+
+      // Close suggestions when clicking outside
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (suggestRef.current && !suggestRef.current.contains(e.target)) {
+            setShowSuggestions(false);
+          }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+      }, []);
 
       // PDF extraction
       const extractPdf = useCallback(async (file) => {
@@ -589,7 +624,7 @@
         try {
           const body = { query: effectiveQuery, campus };
           if (activeDept) body.department = activeDept;
-          const resp = await fetch(`${API}/match`, {
+          const resp = await fetch(`${API_BASE_URL}/match`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
@@ -771,15 +806,46 @@
                         </div>
 
                         {/* Input Area */}
-                        <div className="space-y-6">
+                        <div className="space-y-6 relative">
                           {tab === "text" ? (
-                            <div className="neon-border">
+                            <div className="neon-border relative" ref={suggestRef}>
                               <textarea
                                 className="w-full h-64 md:h-80 bg-surface-container-lowest border-none rounded-lg p-6 md:p-8 text-lg font-body text-on-surface placeholder:text-outline/40 focus:ring-0 resize-none"
                                 placeholder="Describe your research interests, current projects, or a specific problem you're looking to solve...&#10;&#10;Example: I'm interested in applying deep learning to medical image analysis, specifically for early cancer detection using CNNs and transformer architectures."
                                 value={query}
-                                onChange={(e) => setQuery(e.target.value)}
+                                onChange={(e) => {
+                                  setQuery(e.target.value);
+                                  setShowSuggestions(true);
+                                }}
+                                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                               />
+                              
+                              {/* Suggestions Dropdown */}
+                              {showSuggestions && suggestions.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 z-[60] mt-2 bg-surface-container-highest border border-outline-variant/30 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <div className="p-3 border-b border-outline-variant/10 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                                    <span className="material-symbols-outlined text-sm">lightbulb</span>
+                                    Recommended Topics
+                                  </div>
+                                  <div className="max-h-60 overflow-y-auto">
+                                    {suggestions.map((s, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={() => {
+                                          setQuery(s);
+                                          setShowSuggestions(false);
+                                          // Optional: trigger match automatically
+                                          // handleMatch(); 
+                                        }}
+                                        className="w-full text-left px-6 py-4 hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-4 group"
+                                      >
+                                        <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">search</span>
+                                        <span className="font-medium">{s}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div

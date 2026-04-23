@@ -43,7 +43,13 @@ class ProfessorMatcher:
         norms = np.linalg.norm(self.doc_matrix, axis=1, keepdims=True) + 1e-9
         self.doc_matrix = self.doc_matrix / norms
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Explicitly handle device for Hugging Face/CPU environments
+        if torch.cuda.is_available():
+            device = "cuda"
+        else:
+            device = "cpu"
+            
+        print(f"Loading SentenceTransformer on {device}...")
         self.embedder = SentenceTransformer(EMBED_MODEL_NAME, device=device)
         if device == "cuda":
             self.embedder.to(torch.float16)

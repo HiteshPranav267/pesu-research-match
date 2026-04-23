@@ -130,21 +130,66 @@ Write a short, engaging 2-sentence response directly addressing the student. Exp
                     {"role": "user", "content": prompt}]
         
         try:
-            res = llm_pipe(messages, max_new_tokens=100, do_sample=False, return_full_text=False)
-            generated = res[0]['generated_text']
-            # If it's a list (chat format), get last content, else it's a string
-            if isinstance(generated, list):
-                ai_summary = generated[-1]['content'].strip()
+            # Use a more explicit generation call for better CPU compatibility
+            res = llm_pipe(
+                messages, 
+                max_new_tokens=120, 
+                do_sample=False, 
+                clean_up_tokenization_spaces=True
+            )
+            
+            # Extract the generated text safely
+            if isinstance(res, list) and len(res) > 0:
+                # If it's the newer chat-style output
+                if 'generated_text' in res[0]:
+                    gen = res[0]['generated_text']
+                    if isinstance(gen, list):
+                        ai_summary = gen[-1]['content'].strip()
+                    else:
+                        # Fallback for string-based output
+                        ai_summary = str(gen).strip()
+                else:
+                    ai_summary = "Match found, but summary could not be formatted."
             else:
-                ai_summary = str(generated).strip()
+                ai_summary = "Match found, but the advisor is currently busy."
+
         except Exception as e:
-            ai_summary = "An error occurred generating the AI insight."
-            print("LLM Error:", e)
+            # This will now show up in your Hugging Face "Logs" tab!
+            print(f"--- LLM GENERATION ERROR ---")
+            print(f"Error Type: {type(e).__name__}")
+            print(f"Error Message: {str(e)}")
+            ai_summary = "An error occurred generating the AI insight. Please check the server logs."
 
     return jsonify({
         "results": results,
         "ai_summary": ai_summary
     })
 
+@app.route("/suggest", methods=["GET", "OPTIONS"])
+def suggest():
+    query = request.args.get("query", "").lower().strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+
+    try:
+        import json
+        if not os.path.exists("search_suggestions.json"):
+            return jsonify([])
+        with open("search_suggestions.json", "r") as f:
+            all_suggestions = json.load(f)
+        
+        # Filter suggestions that contain the query
+        matches = [s for s in all_suggestions if query in s.lower()]
+        
+        # Sort by relevance: starts with query first, then contains query
+        matches.sort(key=lambda s: (not s.lower().startswith(query), s.lower()))
+        
+        return jsonify(matches[:8])  # Return top 8 suggestions
+    except Exception as e:
+        print(f"Suggestion error: {e}")
+        return jsonify([])
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    # Hugging Face Spaces port is 7860
+    port = int(os.environ.get("PORT", 7860))
+    app.run(host="0.0.0.0", port=port, debug=False)

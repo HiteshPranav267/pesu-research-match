@@ -1,8 +1,8 @@
-requests
-beautifulsoup4
+flask
+flask-cors
+torch
+transformers
 sentence-transformers
-fastapi
-uvicorn
+rank-bm25
 numpy
-scipy
-pydantic
+accelerate
